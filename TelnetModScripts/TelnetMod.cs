@@ -8,6 +8,7 @@ using Sandbox.Game.GameSystems;
 using Sandbox.Game.Entities;
 using Sandbox.Common.ObjectBuilders;
 using VRage.ObjectBuilders;
+using Sandbox.ModAPI.Interfaces.Terminal;
 
 namespace TelnetMod
 {
@@ -27,11 +28,16 @@ namespace TelnetMod
             this.objectBuilder = objectBuilder;
             block = (IMyTerminalBlock)Entity;
 
-            using (var writer = MyAPIGateway.Utilities.WriteFileInLocalStorage("tellus.log", typeof(TelnetMod)))
-            {
-                writer.WriteLine("Init " + TelnetPlugin.ModAPI.Telnet.Hello);
-                writer.Flush();
-            }            
+            Log.Info("Init");
+
+            var red = MyAPIGateway.TerminalControls.CreateControl<IMyTerminalControlLabel, Sandbox.ModAPI.Ingame.IMyTerminalBlock>("bobo");
+            red.Enabled = _ => true;
+            red.Visible = b => b.BlockDefinition.TypeId == block.BlockDefinition.TypeId && b.BlockDefinition.SubtypeId == block.BlockDefinition.SubtypeId;
+
+            string title = TelnetPlugin.ModAPI.Telnet.Hello;
+
+            red.Label = VRage.Utils.MyStringId.GetOrCompute(title);
+            MyAPIGateway.TerminalControls.AddControl<Sandbox.ModAPI.Ingame.IMyTerminalBlock>(red);
         }
     }
 }

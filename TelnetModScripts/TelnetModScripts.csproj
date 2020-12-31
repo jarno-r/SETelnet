@@ -72,8 +72,13 @@
     <Reference Include="VRage.Game">
       <HintPath>$(SpaceEngineersGameDirectory)\Bin64\VRage.Game.dll</HintPath>
     </Reference>
+    <Reference Include="VRage.Library, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>D:\Games\Steam\steamapps\common\SpaceEngineers\Bin64\VRage.Library.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Log.cs" />
     <Compile Include="TelnetMod.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
@@ -85,9 +90,10 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>
-      xcopy $(ProjectDir)\*.cs $(SolutionDir)\Mods\Telnet\Data\Scripts\TelnetMod\ /F /I /Y
-      xcopy $(SolutionDir)\Mods\ $(APPDATA)\SpaceEngineers\Mods /E /Y /F
+    <PostBuildEvent>del $(SolutionDir)\Mods\Telnet\Data\Scripts\TelnetMod\*.cs /Q
+del /S $(APPDATA)\SpaceEngineers\Mods\Telnet\ /Q
+xcopy $(ProjectDir)\*.cs $(SolutionDir)\Mods\Telnet\Data\Scripts\TelnetMod\ /F /I /Y
+xcopy $(SolutionDir)\Mods\ $(APPDATA)\SpaceEngineers\Mods /E /Y /F
 </PostBuildEvent>
   </PropertyGroup>
 </Project>

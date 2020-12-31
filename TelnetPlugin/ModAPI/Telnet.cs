@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace TelnetPlugin.ModAPI
 {
-    public class Telnet
+    public static class Telnet
     {
         public static string Hello = "Howdy";
     }

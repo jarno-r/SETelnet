@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TelnetPlugin", "TelnetPlugi
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TelnetModScripts", "TelnetModScripts\TelnetModScripts.csproj", "{22C6DB96-557D-4432-B0D4-CABE884BE783}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TelnetTestServer", "TelnetTestServer\TelnetTestServer.csproj", "{A73259B7-0BE8-46F9-8139-B11998634DC2}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -31,6 +33,14 @@ Global
 		{22C6DB96-557D-4432-B0D4-CABE884BE783}.Release|Any CPU.Build.0 = Release|Any CPU
 		{22C6DB96-557D-4432-B0D4-CABE884BE783}.Release|x64.ActiveCfg = Release|Any CPU
 		{22C6DB96-557D-4432-B0D4-CABE884BE783}.Release|x64.Build.0 = Release|Any CPU
+		{A73259B7-0BE8-46F9-8139-B11998634DC2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A73259B7-0BE8-46F9-8139-B11998634DC2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A73259B7-0BE8-46F9-8139-B11998634DC2}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{A73259B7-0BE8-46F9-8139-B11998634DC2}.Debug|x64.Build.0 = Debug|Any CPU
+		{A73259B7-0BE8-46F9-8139-B11998634DC2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A73259B7-0BE8-46F9-8139-B11998634DC2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A73259B7-0BE8-46F9-8139-B11998634DC2}.Release|x64.ActiveCfg = Release|Any CPU
+		{A73259B7-0BE8-46F9-8139-B11998634DC2}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

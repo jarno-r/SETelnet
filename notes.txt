@@ -1,1 +1,16 @@
 D:\Games\Steam\steamapps\common\SpaceEngineers\Content\Data\CubeBlocks
+
+Telnet protocol has a bunch of options and the option negotiation is messy.
+By default with no options enabled, Telnet starts in a mode where both sides send a line at a time and the client echoes the line locally.
+
+List of Telnet options: https://www.iana.org/assignments/telnet-options/telnet-options.xhtml
+
+- Linux Netkit Telnet
+  - Doesn't try to actively negotiate options if not connected to a 'telnet' port. Use command 'open <host> - <port>' to enable negotiation.
+
+- Putty Telnet
+  - Default setting is to always actively negotiate options.
+  
+Useful links:
+    - https://flylib.com/books/en/3.223.1.272/1/ Telnet Examples
+
