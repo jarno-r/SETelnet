@@ -47,27 +47,6 @@ namespace TelnetPlugin
             Close();
         }
 
-        public void Close()
-        {
-            if (client != null || listener != null) nServers--;
-
-            if (client != null)
-            {
-                client.Close();
-                nServers--;
-            }
-            client = null;
-
-            if (listener != null)
-            {
-                listener.Stop();
-            }
-
-            listener = null;
-
-            if (stream != null) stream.Close();
-        }
-
         public static string GetAddress()
         {
             foreach (NetworkInterface ni in NetworkInterface.GetAllNetworkInterfaces())
@@ -122,20 +101,16 @@ namespace TelnetPlugin
             onConnected();
         }
 
-        public string Address => GetAddress();
-
-        public int Port { get; private set; }
-
         public static Server Create(Action onConnected)
         {
             return Create(0, onConnected);
         }
 
-        public static Server Create(int portHint, Action onConnected)        
+        public static Server Create(int portHint, Action onConnected)
         {
             if (portHint == 0) portHint = RandomPort();
 
-            if (portHint < MIN_PORT || portHint>=MAX_PORT)
+            if (portHint < MIN_PORT || portHint >= MAX_PORT)
             {
                 return null;
             }
@@ -163,15 +138,7 @@ namespace TelnetPlugin
             return null;
         }
 
-        public void Write(string msg)
-        {
-            Send(Encoding.ASCII.GetBytes(msg));
-        }
 
-        public void WriteLine(string msg)
-        {
-            Write(msg + "\r\n");
-        }
 
         // Eliminate Telnet option negotiation.
         private static int StripOptions(byte[] buffer, int count)
@@ -187,7 +154,7 @@ namespace TelnetPlugin
                     count -= 3;
 
                     // Copy stuff backwards to remove option.
-                    Array.Copy(buffer, i + 3, buffer, i, count-i);
+                    Array.Copy(buffer, i + 3, buffer, i, count - i);
 
                     i--;
                 }
@@ -205,27 +172,23 @@ namespace TelnetPlugin
 
         private async void ReadLineAsync(Action<string> d)
         {
-            if (stream!=null)
+            if (stream != null)
             {
                 var count = await Recv();
                 Debug.WriteLine("Got " + count);
-                for(int i=0;i<count;i++)
+                for (int i = 0; i < count; i++)
                 {
                     Debug.WriteLine(buffer[i]);
                 }
-                if (count>0)
+                if (count > 0)
                 {
                     d(Encoding.ASCII.GetString(buffer, 0, count));
-                } else
+                }
+                else
                 {
                     ReadLineAsync(d);
                 }
             }
-        }
-
-        public void ReadLine(Action<string> d)
-        {
-            if (client != null) ReadLineAsync(d);
         }
 
         private async void Send(byte[] data)
@@ -234,6 +197,51 @@ namespace TelnetPlugin
             {
                 await stream.WriteAsync(data, 0, data.Length);
             }
+        }
+
+
+        // Implementation of IServer
+        public string Address => GetAddress();
+
+        public int Port { get; private set; }
+
+        public void ReadLine(Action<string> d)
+        {
+            if (client != null)
+                using (new UsingSynchronizationContext(synchronizationContext))
+                    ReadLineAsync(d);
+        }
+
+        public void Write(string msg)
+        {
+            using (new UsingSynchronizationContext(synchronizationContext))
+                Send(Encoding.ASCII.GetBytes(msg));
+        }
+
+        public void WriteLine(string msg)
+        {
+            Write(msg + "\r\n");
+        }
+
+        public void Close()
+        {
+            if (client != null || listener != null) nServers--;
+
+            if (client != null)
+            {
+                client.Close();
+                nServers--;
+            }
+            client = null;
+
+            if (listener != null)
+            {
+                listener.Stop();
+            }
+
+            listener = null;
+
+            if (stream != null) stream.Close();
         }
     }
 }

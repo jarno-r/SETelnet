@@ -14,3 +14,72 @@ List of Telnet options: https://www.iana.org/assignments/telnet-options/telnet-o
 Useful links:
     - https://flylib.com/books/en/3.223.1.272/1/ Telnet Examples
 
+
+
+----------------------------
+Putty & telnet negotiation attempts at connect.
+
+Putty
+255 IAC
+251 WILL
+31 NAWS (Negotiate About Window Size)
+255 IAC
+251 WILL
+32 Terminal Speed
+255 IAC
+251 WILL
+24 Terminal Type
+255 IAC
+251 WILL
+39 New Environment Option
+255 IAC
+253 DO
+1 Echo
+255 IAC
+251 WILL
+3 Suppress Go Ahead
+255 IAC
+253 DO
+3 Suppress Go Ahead
+
+
+
+Telnet
+SENT DO SUPPRESS GO AHEAD
+SENT WILL TERMINAL TYPE
+SENT WILL NAWS
+SENT WILL TSPEED
+SENT WILL LFLOW
+SENT WILL LINEMODE
+SENT WILL NEW-ENVIRON
+SENT DO STATUS
+SENT WILL XDISPLOC
+RCVD DO TERMINAL TYPE
+
+255
+253
+3
+255
+251
+24
+255
+251
+31
+255
+251
+32
+255
+251
+33
+255
+251
+34
+255
+251
+39
+255
+253
+5
+255
+251
+35

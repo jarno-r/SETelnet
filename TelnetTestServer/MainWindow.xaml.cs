@@ -13,6 +13,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using TelnetPlugin.ModAPI;
 
 namespace TelnetTestServer
 {
@@ -21,7 +22,7 @@ namespace TelnetTestServer
     /// </summary>
     public partial class MainWindow : Window
     {
-        private Server server;
+        private IServer server;
 
         public MainWindow()
         {
@@ -30,16 +31,22 @@ namespace TelnetTestServer
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            Debug.WriteLine(Server.GetAddress());
-            server = Server.Create(57888, () =>
+            server = Telnet.CreateServer(57888, () =>
             {
                 server.Write("Type in your name: ");
                 server.ReadLine(name =>
                 {
                     server.WriteLine($"Hello {name}");
-                    server.Close();
+                    server.WriteLine("What's you favourite colour?");
+                    server.ReadLine(color =>
+                    {
+                        server.WriteLine($"I don't like {color}");
+                        server.Close();
+                    });
                 });
             });
+
+            infoLabel.Content = $"{server.Address}:{server.Port}";
         }
     }
 }

@@ -70,7 +70,7 @@ namespace TelnetPlugin
             {
                 
 
-                new Server2().Start();
+                //new Server2().Start();
             }
         }
 
@@ -81,14 +81,25 @@ namespace TelnetPlugin
             {
                 MySynchronizationContext.Run();
             }
+
+            if (go == 0)
+            {
+                new Server2().Start();
+                go += 1;
+
+                using (new UsingSynchronizationContext(MySynchronizationContext.Instance))
+                {
+                    new Server2().Start(10000);
+                }
+            }
         }
     }
 
     public class Server2
     {
-        public async void Start()
+        public async void Start(int port=9999)
         {
-            TcpListener server = new TcpListener(IPAddress.Any, 9999);
+            TcpListener server = new TcpListener(IPAddress.Any, port);
 
             TelnetPlugin.Log("Local Endpoint: " + server.LocalEndpoint);
 
