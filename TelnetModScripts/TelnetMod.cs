@@ -9,6 +9,7 @@ using Sandbox.Game.Entities;
 using Sandbox.Common.ObjectBuilders;
 using VRage.ObjectBuilders;
 using Sandbox.ModAPI.Interfaces.Terminal;
+using VRage.ModAPI;
 
 namespace TelnetMod
 {
@@ -38,6 +39,37 @@ namespace TelnetMod
 
             red.Label = VRage.Utils.MyStringId.GetOrCompute(title);
             MyAPIGateway.TerminalControls.AddControl<Sandbox.ModAPI.Ingame.IMyTerminalBlock>(red);
+
+            NeedsUpdate |= MyEntityUpdateEnum.EACH_10TH_FRAME;
+        }
+
+        private int go = 0;
+
+        private TelnetPlugin.ModAPI.IServer server;
+
+        public override void UpdateAfterSimulation10()
+        {
+            if (go==0)
+            {
+                Log.Info("First update 10");
+            }
+
+            go++;
+            if (go == 10)
+            {
+                Log.Info("Starting Server");
+
+                server = TelnetPlugin.ModAPI.Telnet.CreateServer(57889, () =>
+                {
+                    server.WriteLine("Jenny from the block here.");
+                    server.Write("Type in your name: ");
+                    server.ReadLine(name =>
+                    {
+                        server.WriteLine($"Hello {name}");
+                        server.Close();
+                    });
+                });
+            }
         }
     }
 }

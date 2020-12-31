@@ -68,6 +68,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ModAPI\IServer.cs" />
     <Compile Include="ModAPI\Telnet.cs" />
     <Compile Include="MySynchronizationContext.cs" />
     <Compile Include="Server.cs" />
