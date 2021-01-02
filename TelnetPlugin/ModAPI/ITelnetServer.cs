@@ -6,16 +6,22 @@ using System.Threading.Tasks;
 
 namespace TelnetPlugin.ModAPI
 {
-    public interface IServer
+    public interface ITelnetServer
     {
-        void ReadLine(Action<string> d);
-        void Write(string msg);
-        void WriteLine(string msg);
-
         string Address { get; }
 
         int Port { get; }
 
-        void Close();
+        bool IsConnected { get; }
+
+        void ReadLine(Action<string> d);
+
+        void Write(string msg);
+
+        void WriteLine(string msg);
+
+        void Accept(Action onConnected);
+
+        void Close();        
     }
 }

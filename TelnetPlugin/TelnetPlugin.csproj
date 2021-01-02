@@ -68,13 +68,13 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ModAPI\IServer.cs" />
+    <Compile Include="Log.cs" />
+    <Compile Include="ModAPI\ITelnetServer.cs" />
     <Compile Include="ModAPI\Telnet.cs" />
     <Compile Include="MySynchronizationContext.cs" />
-    <Compile Include="Server.cs" />
+    <Compile Include="TelnetServer.cs" />
     <Compile Include="TelnetPlugin.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="UsingSynchronizationContext.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

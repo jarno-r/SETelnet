@@ -45,11 +45,11 @@ namespace TelnetMod
 
         private int go = 0;
 
-        private TelnetPlugin.ModAPI.IServer server;
+        private TelnetPlugin.ModAPI.ITelnetServer server;
 
         public override void UpdateAfterSimulation10()
         {
-            if (go==0)
+            if (go == 0)
             {
                 Log.Info("First update 10");
             }
@@ -59,16 +59,17 @@ namespace TelnetMod
             {
                 Log.Info("Starting Server");
 
-                server = TelnetPlugin.ModAPI.Telnet.CreateServer(57889, () =>
+                server = TelnetPlugin.ModAPI.Telnet.CreateServer(57889);
+                server.Accept(() =>
+            {
+                server.WriteLine("Jenny from the block here.");
+                server.Write("Type in your name: ");
+                server.ReadLine(name =>
                 {
-                    server.WriteLine("Jenny from the block here.");
-                    server.Write("Type in your name: ");
-                    server.ReadLine(name =>
-                    {
-                        server.WriteLine($"Hello {name}");
-                        server.Close();
-                    });
+                    server.WriteLine($"Hello {name}");
+                    server.Close();
                 });
+            });
             }
         }
     }

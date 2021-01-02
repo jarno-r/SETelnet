@@ -10,14 +10,16 @@ namespace TelnetPlugin.ModAPI
     {
         public static string Hello = "Howdy";
 
-        public static IServer CreateServer(Action onConnected)
+        public static ITelnetServer CreateServer()
         {
-            return CreateServer(0, onConnected);
+            return CreateServer(0);
         }
 
-        public static IServer CreateServer(int portHint, Action onConnected)
+        public static ITelnetServer CreateServer(int portHint)
         {
-            return Server.Create(portHint, onConnected);
+            return TelnetServer.Create(portHint);
         }
+
+        public static string Address => TelnetServer.GetAddress();
     }
 }

@@ -46,17 +46,28 @@ namespace TelnetPlugin
             };
         }
 
-        private Server server;
+        private TelnetServer server;
+
+        private static MySynchronizationContext mySynchronizationContext;
+        public static SynchronizationContext synchronizationContext => mySynchronizationContext;
+
+        public static MySynchronizationContext.UsingSynchronizationContext UsingSC()
+        {
+            SynchronizationContext sc = synchronizationContext;
+            if (sc == null) sc = SynchronizationContext.Current;
+            return new MySynchronizationContext.UsingSynchronizationContext(sc);
+        }
 
         public void Init(object gameInstance)
         {
-            Server.synchronizationContext = MySynchronizationContext.Instance;
-
             System.IO.File.WriteAllText(LOG_FILE, "Init!\n");
 
             RegisterPluginModAPI();
 
-            server = Server.Create(57888, () =>
+            mySynchronizationContext = new MySynchronizationContext();
+
+            server = TelnetServer.Create(57888);
+            server.Accept(() =>
             {
                 server.Write("Type in your name: ");
                 server.ReadLine(name =>
@@ -65,67 +76,13 @@ namespace TelnetPlugin
                     server.Close();
                 });
             });
-
-            using (new UsingSynchronizationContext(MySynchronizationContext.Instance))
-            {
-                
-
-                //new Server2().Start();
-            }
         }
 
-        private int go = 0;
         public void Update()
         {
-            using (new UsingSynchronizationContext(MySynchronizationContext.Instance))
+            using (MySynchronizationContext.Using())
             {
-                MySynchronizationContext.Run();
-            }
-
-            if (go == 0)
-            {
-                new Server2().Start();
-                go += 1;
-
-                using (new UsingSynchronizationContext(MySynchronizationContext.Instance))
-                {
-                    new Server2().Start(10000);
-                }
-            }
-        }
-    }
-
-    public class Server2
-    {
-        public async void Start(int port=9999)
-        {
-            TcpListener server = new TcpListener(IPAddress.Any, port);
-
-            TelnetPlugin.Log("Local Endpoint: " + server.LocalEndpoint);
-
-            server.Start();
-
-            var task = server.AcceptTcpClientAsync();
-            TelnetPlugin.Log("Server started, waiting for connections...");
-
-            var b = task.Wait(500);
-            TelnetPlugin.Log($"{b} {task.IsCompleted} {task.IsFaulted} {task.Status}");
-
-            try
-            {
-                TcpClient client = await task; //.ConfigureAwait(false);
-
-                TelnetPlugin.Log("Got connected!");
-
-                var data = Encoding.UTF8.GetBytes("Goop");
-                client.GetStream().Write(data, 0, data.Length);
-                client.Close();
-
-                TelnetPlugin.Log("Done with it!");
-            }
-            catch (Exception e)
-            {
-                TelnetPlugin.Log("Exceptional: " + e);
+                mySynchronizationContext.Run();
             }
         }
     }

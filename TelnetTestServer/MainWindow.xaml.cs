@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -22,7 +23,7 @@ namespace TelnetTestServer
     /// </summary>
     public partial class MainWindow : Window
     {
-        private IServer server;
+        private ITelnetServer server;
 
         public MainWindow()
         {
@@ -31,15 +32,18 @@ namespace TelnetTestServer
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            server = Telnet.CreateServer(57888, () =>
+            server = Telnet.CreateServer(57888);
+            server.Accept(() =>
             {
                 server.Write("Type in your name: ");
                 server.ReadLine(name =>
                 {
+                    Debug.WriteLine($"Got {name}");
                     server.WriteLine($"Hello {name}");
-                    server.WriteLine("What's you favourite colour?");
+                    server.Write("What's you favourite colour? ");
                     server.ReadLine(color =>
                     {
+                        Debug.WriteLine($"Got {color}");
                         server.WriteLine($"I don't like {color}");
                         server.Close();
                     });
