@@ -30,24 +30,41 @@ namespace TelnetTestServer
             InitializeComponent();
         }
 
+        private void Prompt(ITelnetServer server)
+        {
+            server.Write("Type in your name: ");
+            server.ReadLine(name =>
+            {
+                Debug.WriteLine($"Got {name}");
+                server.WriteLine($"Hello {name}");
+                server.Write("What's you favourite colour? ");
+                server.ReadLine(color =>
+                {
+                    Debug.WriteLine($"Got {color}");
+                    server.WriteLine($"I don't like {color}");
+                    //server.Close();
+                });
+            });
+        }
+
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
             server = Telnet.CreateServer(57888);
             server.Accept(() =>
             {
-                server.Write("Type in your name: ");
-                server.ReadLine(name =>
+                Prompt(server);
+            });
+
+            Task.Run(async () =>
+            {
+                while (true)
                 {
-                    Debug.WriteLine($"Got {name}");
-                    server.WriteLine($"Hello {name}");
-                    server.Write("What's you favourite colour? ");
-                    server.ReadLine(color =>
-                    {
-                        Debug.WriteLine($"Got {color}");
-                        server.WriteLine($"I don't like {color}");
-                        server.Close();
-                    });
-                });
+                    await Task.Delay(15000);
+                    Debug.WriteLine("Timeout");
+                    server.CancelRead();
+                    server.WriteLine("\nAre you still there?");
+                    Prompt(server);
+                }
             });
 
             infoLabel.Content = $"{server.Address}:{server.Port}";

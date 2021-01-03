@@ -53,6 +53,8 @@ namespace TelnetPlugin
                 if (buffer == null) buffer = new byte[READ_BUFFER_SIZE];
 
                 pos = 0;
+                len = 0;    // Important to set len==0, because ReadAsync might fail.
+
                 len = await server.ReadAsync(buffer);
             }
 
@@ -73,9 +75,11 @@ namespace TelnetPlugin
 
         private bool readPending;
         private bool writePending;
+        private bool readReady = true;
         private Queue<string> writeQueue = new Queue<string>();
+        private Action<string> waitingRead;
 
-        private CancellationTokenSource source = new CancellationTokenSource();
+        private CancellationTokenSource source;
         private byte[] sendBuffer;
         private byte[] lineBuffer;
         ReadBuffer readBuffer;
@@ -131,7 +135,6 @@ namespace TelnetPlugin
             Port = (listener.LocalEndpoint as IPEndPoint).Port;
 
             Log.Info("Waiting for connections on " + listener.LocalEndpoint.ToString());
-            listener.Start();
             client = await listener.AcceptTcpClientAsync();
 
             Log.Info($"Accepted a connection on {listener.LocalEndpoint} from {client.Client.RemoteEndPoint}");
@@ -168,12 +171,13 @@ namespace TelnetPlugin
                 try
                 {
                     listener = new TcpListener(IPAddress.Any, portHint);
+                    listener.Start();
 
                     return new TelnetServer(listener);
                 }
                 catch (Exception e)
                 {
-                    Debug.WriteLine("Couldn't create TCPListener: " + e);
+                    Log.Info("Couldn't create TCPListener: " + e);
                 }
 
                 portHint = RandomPort();
@@ -184,79 +188,82 @@ namespace TelnetPlugin
             return null;
         }
 
-        
-
-        public async void ReadLineAsync(Action<string> d)
+        public async Task<string> ReadLineAsync()
         {
             if (lineBuffer == null) lineBuffer = new byte[LINE_BUFFER_SIZE];
 
-            if (readPending)
-            {
-                Log.Error($"Read already pending on port {Port}.");
-                return;
-            }
-
-            readPending = true;
             int p = 0;
-            try
+
+            using (source = new CancellationTokenSource())
             {
-                while (p < lineBuffer.Length)
+                try
                 {
-                    if (readBuffer.NeedsMore) await readBuffer.GetsMore();
-                    int b = readBuffer.ReadByte();
-
-                    // Convert CRLFs and lone CRs to LFs.
-                    if (b == '\r')
+                    while (p < lineBuffer.Length)
                     {
                         if (readBuffer.NeedsMore) await readBuffer.GetsMore();
-                        if (readBuffer.PeekByte() == '\n') readBuffer.ReadByte();
-                        b = '\n';
-                    }
+                        int b = readBuffer.ReadByte();
 
-                    if (b == '\n' || b < 0) break;
-
-                    if (b == 0xff) // IAC (Interpret as Command)
-                    {
-                        if (readBuffer.NeedsMore) await readBuffer.GetsMore();
-                        b = readBuffer.ReadByte();
-
-                        if (b == 251 || b == 252 || b == 253 || b == 254)
+                        // Convert CRLFs and lone CRs to LFs.
+                        if (b == '\r')
                         {
-                            // DO, DON'T, WILL, WON'T
-                            // Skip the option code
                             if (readBuffer.NeedsMore) await readBuffer.GetsMore();
-                            readBuffer.ReadByte();
+                            if (readBuffer.PeekByte() == '\n') readBuffer.ReadByte();
+                            b = '\n';
                         }
-                        else if (b == 250)
+
+                        if (b == '\n' || b < 0) break;
+
+                        if (b == 0xff) // IAC (Interpret as Command)
                         {
-                            // SB
-                            // Skip until SE.
-                            do
+                            if (readBuffer.NeedsMore) await readBuffer.GetsMore();
+                            b = readBuffer.ReadByte();
+
+                            if (b == 251 || b == 252 || b == 253 || b == 254)
                             {
+                                // DO, DON'T, WILL, WON'T
+                                // Skip the option code
                                 if (readBuffer.NeedsMore) await readBuffer.GetsMore();
-                                b = readBuffer.ReadByte();
-                            } while (b != 240 && b >= 0);
+                                readBuffer.ReadByte();
+                            }
+                            else if (b == 250)
+                            {
+                                // SB
+                                // Skip until SE.
+                                do
+                                {
+                                    if (readBuffer.NeedsMore) await readBuffer.GetsMore();
+                                    b = readBuffer.ReadByte();
+                                } while (b != 240 && b >= 0);
+                            }
+                            else
+                            {
+                                // One of the other codes, or transmission error.
+                                // Just skip it.
+                            }
                         }
                         else
                         {
-                            // One of the other codes, or transmission error.
-                            // Just skip it.
+                            lineBuffer[p++] = (byte)b;
                         }
                     }
-                    else
-                    {
-                        lineBuffer[p++] = (byte)b;
-                    }
+                }
+                catch (OperationCanceledException)
+                {
+                    Log.Info($"Read cancelled on port {Port}");
+
+                    readReady = true;
+                    source = null;
+                    
+                    return null;
                 }
             }
-            catch (OperationCanceledException)
-            {
-                p = 0;
-                Log.Info($"Read cancelled on port {Port}");
-            }
 
-            readPending = false;
-            if (p > 0) d(Encoding.ASCII.GetString(lineBuffer, 0, p));
+            readReady = true;
+            source = null;
+
+            if (p > 0)
+                return Encoding.ASCII.GetString(lineBuffer, 0, p);
+            else return "";
         }
 
         private async Task<int> ReadAsync(byte[] data)
@@ -271,6 +278,32 @@ namespace TelnetPlugin
                 Close();
                 Log.Info($"IOException while reading @ port {Port}. Server closed.\n{ex}");
                 return 0;
+            }
+        }
+
+        public async Task DequeueReadLineAsync()
+        {
+            readPending = true;
+            while (waitingRead != null)
+            {
+                readReady = false;
+                var d = waitingRead;
+                waitingRead = null;
+                var line = await ReadLineAsync();
+                if (line != null) d(line);
+            }
+            readPending = false;
+        }
+
+        public async void QueueReadLineAsync(Action<string> d)
+        {
+            if (readReady && waitingRead==null)
+            {
+                waitingRead = d;
+                if (!readPending) await DequeueReadLineAsync();
+            } else
+            {
+                Log.Error($"Read pending on {Port}");
             }
         }
 
@@ -345,7 +378,7 @@ namespace TelnetPlugin
             if (client == null) return;
 
             using (MySynchronizationContext.Using())
-                ReadLineAsync(d);
+                QueueReadLineAsync(d);
         }
 
         public void Write(string msg)
@@ -378,28 +411,23 @@ namespace TelnetPlugin
         {
             if (client != null || listener != null) nServers--;
 
-            if (client != null)
-            {
-                client.Close();
-                client = null;
-            }
+            client?.Close();
+            client = null;
 
-            if (listener != null)
-            {
-                listener.Stop();
-                listener = null;
-            }
+            listener?.Stop();
+            listener = null;
 
-            if (stream != null)
-            {
-                stream.Close();
-                stream = null;
-            }
+            stream?.Close();
+            stream = null;
         }
 
         public void CancelRead()
         {
-            source.Cancel();
+            if (source!=null)
+            {
+                source.Cancel();
+                readReady = true;
+            }
         }
     }
 }
