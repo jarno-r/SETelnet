@@ -71,6 +71,11 @@ namespace TelnetPlugin
 
         private static int nServers = 0;
 
+        private bool readPending;
+        private bool writePending;
+        private Queue<string> writeQueue = new Queue<string>();
+
+        private CancellationTokenSource source = new CancellationTokenSource();
         private byte[] sendBuffer;
         private byte[] lineBuffer;
         ReadBuffer readBuffer;
@@ -185,57 +190,73 @@ namespace TelnetPlugin
         {
             if (lineBuffer == null) lineBuffer = new byte[LINE_BUFFER_SIZE];
 
-            int p = 0;
-            while (p < lineBuffer.Length)
+            if (readPending)
             {
-                if (readBuffer.NeedsMore) await readBuffer.GetsMore();
-                int b = readBuffer.ReadByte();
+                Log.Error($"Read already pending on port {Port}.");
+                return;
+            }
 
-                // Convert CRLFs and lone CRs to LFs.
-                if (b == '\r')
+            readPending = true;
+            int p = 0;
+            try
+            {
+                while (p < lineBuffer.Length)
                 {
                     if (readBuffer.NeedsMore) await readBuffer.GetsMore();
-                    if (readBuffer.PeekByte() == '\n') readBuffer.ReadByte();
-                    b = '\n';
-                }
+                    int b = readBuffer.ReadByte();
 
-                if (b == '\n' || b < 0) break;
-
-                if (b == 0xff) // IAC (Interpret as Command)
-                {
-                    if (readBuffer.NeedsMore) await readBuffer.GetsMore();
-                    b = readBuffer.ReadByte();
-
-                    if (b == 251 || b == 252 || b == 253 || b == 254)
+                    // Convert CRLFs and lone CRs to LFs.
+                    if (b == '\r')
                     {
-                        // DO, DON'T, WILL, WON'T
-                        // Skip the option code
                         if (readBuffer.NeedsMore) await readBuffer.GetsMore();
-                        readBuffer.ReadByte();
+                        if (readBuffer.PeekByte() == '\n') readBuffer.ReadByte();
+                        b = '\n';
                     }
-                    else if (b == 250)
+
+                    if (b == '\n' || b < 0) break;
+
+                    if (b == 0xff) // IAC (Interpret as Command)
                     {
-                        // SB
-                        // Skip until SE.
-                        do
+                        if (readBuffer.NeedsMore) await readBuffer.GetsMore();
+                        b = readBuffer.ReadByte();
+
+                        if (b == 251 || b == 252 || b == 253 || b == 254)
                         {
+                            // DO, DON'T, WILL, WON'T
+                            // Skip the option code
                             if (readBuffer.NeedsMore) await readBuffer.GetsMore();
-                            b = readBuffer.ReadByte();
-                        } while (b != 240 && b >= 0);
+                            readBuffer.ReadByte();
+                        }
+                        else if (b == 250)
+                        {
+                            // SB
+                            // Skip until SE.
+                            do
+                            {
+                                if (readBuffer.NeedsMore) await readBuffer.GetsMore();
+                                b = readBuffer.ReadByte();
+                            } while (b != 240 && b >= 0);
+                        }
+                        else
+                        {
+                            // One of the other codes, or transmission error.
+                            // Just skip it.
+                        }
                     }
                     else
                     {
-                        // One of the other codes, or transmission error.
-                        // Just skip it.
+                        lineBuffer[p++] = (byte)b;
                     }
                 }
-                else
-                {
-                    lineBuffer[p++] = (byte)b;
-                }
+            }
+            catch (OperationCanceledException)
+            {
+                p = 0;
+                Log.Info($"Read cancelled on port {Port}");
             }
 
-            if (p>0) d(Encoding.ASCII.GetString(lineBuffer, 0, p));
+            readPending = false;
+            if (p > 0) d(Encoding.ASCII.GetString(lineBuffer, 0, p));
         }
 
         private async Task<int> ReadAsync(byte[] data)
@@ -243,18 +264,17 @@ namespace TelnetPlugin
             if (stream == null) return 0;
             try
             {
-                return await stream.ReadAsync(data, 0, data.Length);
+                return await stream.ReadAsync(data, 0, data.Length, source.Token);
             }
             catch (IOException ex)
             {
-
                 Close();
                 Log.Info($"IOException while reading @ port {Port}. Server closed.\n{ex}");
                 return 0;
             }
         }
 
-        private async void SendAsync(byte[] data, int length)
+        private async Task SendAsync(byte[] data, int length)
         {
             if (stream != null)
             {
@@ -270,7 +290,7 @@ namespace TelnetPlugin
         }
 
         // Send bytes, converting LFs to CRLFs.
-        private void SendWithCRLF(byte[] str)
+        private async Task SendWithCRLFAsync(byte[] str)
         {
             if (sendBuffer == null) sendBuffer = new byte[SEND_BUFFER_SIZE];
 
@@ -279,8 +299,7 @@ namespace TelnetPlugin
             {
                 if (p > sendBuffer.Length - 2)
                 {
-                    using (MySynchronizationContext.Using())
-                        SendAsync(sendBuffer, p);
+                    await SendAsync(sendBuffer, p);
                     p = 0;
                 }
 
@@ -291,8 +310,23 @@ namespace TelnetPlugin
                 sendBuffer[p++] = str[i];
             }
 
-            using (MySynchronizationContext.Using())
-                SendAsync(sendBuffer, p);
+            await SendAsync(sendBuffer, p);
+        }
+
+        private async void QueueWriteAsync(string msg)
+        {
+            writeQueue.Enqueue(msg);
+            if (!writePending)
+            {
+                writePending = true;
+                while (writeQueue.Count > 0)
+                {
+                    var m = writeQueue.Dequeue();
+                    var bytes = Encoding.UTF8.GetBytes(m);
+                    await SendWithCRLFAsync(bytes);
+                }
+                writePending = false;
+            }
         }
 
         // --------------------------------
@@ -304,18 +338,22 @@ namespace TelnetPlugin
 
         public bool IsConnected => client != null;
 
+        public bool IsClosed => client == null && listener == null;
+
         public void ReadLine(Action<string> d)
         {
+            if (client == null) return;
+
             using (MySynchronizationContext.Using())
                 ReadLineAsync(d);
         }
 
         public void Write(string msg)
         {
-            // UTF-8 could be used with BINARY & maybe CHARSET modes?
-            var bytes = Encoding.ASCII.GetBytes(msg);
+            if (client == null) return;
 
-            SendWithCRLF(bytes);
+            using (MySynchronizationContext.Using())
+                QueueWriteAsync(msg);
         }
 
         public void WriteLine(string msg)
@@ -357,6 +395,11 @@ namespace TelnetPlugin
                 stream.Close();
                 stream = null;
             }
+        }
+
+        public void CancelRead()
+        {
+            source.Cancel();
         }
     }
 }
