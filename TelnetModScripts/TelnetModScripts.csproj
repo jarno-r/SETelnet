@@ -3,7 +3,7 @@
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
     <SpaceEngineersGameDirectory>D:\Games\Steam\steamapps\common\SpaceEngineers</SpaceEngineersGameDirectory>
-  </PropertyGroup>
+  </PropertyGroup>  
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
@@ -94,6 +94,12 @@
 del /S $(APPDATA)\SpaceEngineers\Mods\Telnet\ /Q
 xcopy $(ProjectDir)\*.cs $(SolutionDir)\Mods\Telnet\Data\Scripts\TelnetMod\ /F /I /Y
 xcopy $(SolutionDir)\Mods\ $(APPDATA)\SpaceEngineers\Mods /E /Y /F
-</PostBuildEvent>
+
+
+xcopy $(ProjectDir)\*.cs D:\Games\Steam\steamapps\workshop\content\244850\2349112358\Data\Scripts\TelnetMod /F /I /Y</PostBuildEvent>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <LangVersion>6</LangVersion>
   </PropertyGroup>
 </Project>

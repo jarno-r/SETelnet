@@ -53,7 +53,7 @@ namespace TelnetPlugin
                 if (buffer == null) buffer = new byte[READ_BUFFER_SIZE];
 
                 pos = 0;
-                len = 0;    // Important to set len==0, because ReadAsync might fail.
+                len = 0;    // Important to set len=0, because ReadAsync might fail.
 
                 len = await server.ReadAsync(buffer);
             }
@@ -93,8 +93,10 @@ namespace TelnetPlugin
             Close();
         }
 
+        private static string _Address;
         public static string GetAddress()
         {
+            if (_Address != null) return _Address;
             foreach (NetworkInterface ni in NetworkInterface.GetAllNetworkInterfaces())
             {
                 var gateway = ni.GetIPProperties().GatewayAddresses.FirstOrDefault();
@@ -103,11 +105,14 @@ namespace TelnetPlugin
                     foreach (var addr in ni.GetIPProperties().UnicastAddresses)
                     {
                         if (addr.Address.AddressFamily == AddressFamily.InterNetwork)
-                            return addr.Address.ToString();
+                            _Address=addr.Address.ToString();
+
+                        return _Address;
                     }
                 }
             }
-            return null;
+            _Address="<NoIP>";
+            return _Address;
         }
 
         private static Random random = new Random();
