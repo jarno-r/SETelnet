@@ -179,7 +179,7 @@ namespace TelnetMod
                 {
                     s.Accept(() =>
                     {
-                        s.WriteLine("Connected to SETMOS (Space Engineers Telnet Mod Operating System).");
+                        s.WriteLine("Connected to SETMOS (Space Engineers Telnet Mod Operating System).\nType 'help' for help.");
                         ServerLoop(s);
                     });
 
