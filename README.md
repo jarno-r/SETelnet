@@ -1,5 +1,5 @@
 # SETelnet
-Space Engineers Telnet Plugin &amp; Mod
+A purely experimental Space Engineers Telnet Plugin &amp; Mod
 
 The plugin lets mods create telnet servers. The mod adds a telnet server to each Control Panel.
 
