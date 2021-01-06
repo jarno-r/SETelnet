@@ -140,8 +140,6 @@ namespace TelnetMod
             {
                 FirstStatic = false;
 
-                Log.Info("First extatic 5!");
-
                 CreateUI();
             }
 
@@ -149,7 +147,7 @@ namespace TelnetMod
             {
                 FirstStart = false;
 
-                block.AppendingCustomInfo += (_, sb) => sb.Append($"UpdateModeToggle: {UpdateModeToggle}");
+                block.AppendingCustomInfo += (_, sb) => sb.Append($"UpdateModeToggle: {UpdateModeToggle}\n");
                 block.AppendingCustomInfo += (_, sb) => sb.Append($"Power: {ComputePower()} MW\n");
 
                 block.AppendingCustomInfo += (_, sb) =>
@@ -207,10 +205,17 @@ namespace TelnetMod
         public void ForceUIUpdate()
         {
             // Inexplicably, Sandbox.Game.Entities is accessible with all the MyWhatnotsitBlocks in there,
-            // but Sandbox.Game.Entities.Cube and Sandbox.Game.Entities.Block are their respective classes are not. 
+            // but Sandbox.Game.Entities.Cube and Sandbox.Game.Entities.Blocks and their respective classes are not.
+            // What classes are in which namespace doesn't seem to follow any logic.
             // Calling MyTerminalBlock.RaisePropertiesChanged should refresh the UI,
             // but MyTerminalBlock is in Sandbox.Game.Entities.Cube and not accessible.
-            // But for example MyAdvancedDoor is a subclass of MyTerminalBlock and is in Sandbox.Game.Entities.
+            // Some subclasses of MyTerminalBlock are accessible, but it's not possible to call methods inherited from MyTerminalBlock.
+
+            /*
+             * This fails with Error: The type or member 'void MyTerminalBlock.RaisePropertiesChanged()' is prohibited
+             * var ma = block as MyAdvancedDoor;
+             * ma?.RaisePropertiesChanged();
+            */
 
             // Two ways to hack it.
             if (UpdateModeToggle) ForceUIUpdateByOwnershipChange(block);
@@ -220,7 +225,7 @@ namespace TelnetMod
         }
 
 
-        public static IMyTerminalControlOnOffSwitch refreshtoggle;
+        private static IMyTerminalControlOnOffSwitch refreshtoggle;
 
         public static void ForceUIUpdateByOnOffToggle(IMyTerminalBlock block)
         {
