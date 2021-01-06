@@ -1,6 +1,11 @@
 # SETelnet
 Space Engineers Telnet Plugin &amp; Mod
 
+The plugin lets mods to create telnet servers. The mod adds a telnet server to each Control Panel.
+
+## How to run
+To install the plugin:
+
     -plugin "../Plugins/TelnetPlugin.dll"
 
 
