@@ -12,6 +12,7 @@ using System.Threading.Tasks;
 
 namespace TelnetPlugin
 {
+    // TODO: Close when SE session quits.
     public class TelnetServer : ModAPI.ITelnetServer
     {
         public static int MAX_SERVERS = 10;
