@@ -5,4 +5,4 @@ Space Engineers Telnet Plugin &amp; Mod
 
 
 ## Missing features
-* Close server when SE session is closed. Otherwise serevrs might be orphaned until SE is closed.
+* Close server when SE session is closed. Otherwise servers might be orphaned until SE is closed.
