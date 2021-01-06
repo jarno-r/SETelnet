@@ -105,9 +105,10 @@ namespace TelnetPlugin
                     foreach (var addr in ni.GetIPProperties().UnicastAddresses)
                     {
                         if (addr.Address.AddressFamily == AddressFamily.InterNetwork)
-                            _Address=addr.Address.ToString();
-
-                        return _Address;
+                        {
+                            _Address = addr.Address.ToString();
+                            return _Address;
+                        }
                     }
                 }
             }
@@ -140,16 +141,24 @@ namespace TelnetPlugin
             Port = (listener.LocalEndpoint as IPEndPoint).Port;
 
             Log.Info("Waiting for connections on " + listener.LocalEndpoint.ToString());
-            client = await listener.AcceptTcpClientAsync();
 
-            Log.Info($"Accepted a connection on {listener.LocalEndpoint} from {client.Client.RemoteEndPoint}");
+            try
+            {
+                client = await listener.AcceptTcpClientAsync();
 
-            listener.Stop();
-            listener = null;
+                Log.Info($"Accepted a connection on {listener.LocalEndpoint} from {client.Client.RemoteEndPoint}");
 
-            stream = client.GetStream();
+                listener.Stop();
+                listener = null;
 
-            onConnected();
+                stream = client.GetStream();
+
+                onConnected();
+            } catch(Exception e)
+            {
+                Log.Error("Failed to accept a connetion on port {Port}. Server closed.\nException: {e}");
+                Close();
+            }
         }
 
         public static TelnetServer Create(int portHint)
@@ -261,6 +270,12 @@ namespace TelnetPlugin
                     
                     return null;
                 }
+                catch(Exception e)
+                {
+                    Log.Error($"Read failed on port {Port}. Server Closed.\nException: {e}");
+                    Close();
+                    return null;
+                }
             }
 
             readReady = true;
@@ -289,7 +304,7 @@ namespace TelnetPlugin
         public async Task DequeueReadLineAsync()
         {
             readPending = true;
-            while (waitingRead != null)
+            while (IsConnected && waitingRead != null)
             {
                 readReady = false;
                 var d = waitingRead;
